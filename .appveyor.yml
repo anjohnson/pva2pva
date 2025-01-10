@@ -12,7 +12,7 @@ cache:
 
 install:
 # for the sequencer
-  - cinst re2c
+  - choco install re2c
   - cmd: git submodule update --init --recursive
 
 #---------------------------------#
