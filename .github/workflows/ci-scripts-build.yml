@@ -27,8 +27,7 @@ jobs:
       BASE: ${{ matrix.base }}
       CMP: ${{ matrix.cmp }}
       BCFG: ${{ matrix.configuration }}
-      WINE: ${{ matrix.wine }}
-      RTEMS: ${{ matrix.rtems }}
+      CI_CROSS_TARGETS: ${{ matrix.cross }}
       EXTRA: ${{ matrix.extra }}
       TEST: ${{ matrix.test }}
     strategy:
@@ -36,66 +35,90 @@ jobs:
       matrix:
         # Job names also name artifacts, character limitations apply
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
+            cmp: gcc
+            base: "7.0"
+            name: "7.0 Ub-24 gcc c++20 Werror"
+            # Turn all warnings into errors,
+            # except for those we could not fix (yet).
+            # Remove respective -Wno-error=... flag once it is fixed.
+            extra: "CMD_CXXFLAGS=-std=c++20
+                    CMD_CPPFLAGS='-fdiagnostics-color
+                                  -fstack-protector-strong
+                                  -Wformat
+                                  -Werror
+                                  -Werror=format-security
+                                  -Wno-error=deprecated-declarations
+                                  -Wno-error=stringop-truncation
+                                  -Wno-error=restrict
+                                  -Wno-error=sizeof-pointer-memaccess
+                                  -Wno-error=nonnull
+                                  -Wno-error=dangling-pointer
+                                  -Wno-error=format-overflow
+                                  -Wno-error=stringop-overread
+                                  -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3'
+                    CMD_LDFLAGS=-Wl,-z,relro"
+
+          - os: ubuntu-22.04
             cmp: gcc
             configuration: default
             base: "7.0"
-            wine: "64"
-            name: "7.0 Ub-20 gcc-9 + MinGW"
+            cross: "windows-x64-mingw"
+            name: "7.0 Ub-22 gcc + MinGW"
 
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             cmp: gcc
             configuration: static
             base: "7.0"
-            wine: "64"
-            name: "7.0 Ub-20 gcc-9 + MinGW, static"
+            cross: "windows-x64-mingw"
+            name: "7.0 Ub-22 gcc + MinGW, static"
 
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             cmp: gcc
             configuration: default
             base: "3.15"
             wine: "64"
-            name: "3.15 Ub-20 gcc-9 + MinGW"
+            name: "3.15 Ub-22 gcc + MinGW"
 
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             cmp: gcc
             configuration: static
             base: "7.0"
             extra: "CMD_CXXFLAGS=-std=c++11"
-            name: "7.0 Ub-20 gcc-9 C++11, static"
+            name: "7.0 Ub-22 gcc C++11, static"
 
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             cmp: clang
             configuration: default
             base: "7.0"
             extra: "CMD_CXXFLAGS=-std=c++11"
-            name: "7.0 Ub-20 clang-10 C++11"
+            name: "7.0 Ub-22 clang C++11"
 
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             cmp: gcc
             configuration: default
             base: "7.0"
-            rtems: "4.10"
-            name: "7.0 Ub-20 gcc-9 + RT-4.10"
+            cross: "RTEMS-pc386-qemu@4.10"
+            name: "7.0 Ub-22 gcc + RT-4.10"
 
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             cmp: gcc
             configuration: default
             base: "7.0"
-            rtems: "4.9"
-            name: "7.0 Ub-20 gcc-9 + RT-4.9"
+            cross: "RTEMS-pc386-qemu@4.9"
+            name: "7.0 Ub-22 gcc + RT-4.9"
 
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             cmp: clang
             configuration: default
             base: "7.0"
-            name: "7.0 Ub-20 clang-10"
+            name: "7.0 Ub-22 clang"
 
           - os: macos-latest
             cmp: clang
             configuration: default
             base: "7.0"
-            name: "7.0 MacOS clang-12"
+            name: "7.0 MacOS clang"
 
           - os: windows-2019
             cmp: vs2019
@@ -116,7 +139,7 @@ jobs:
             name: "7.0 Win2019 mingw, static"
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         submodules: true
     - name: "apt-get install"
@@ -131,12 +154,14 @@ jobs:
     - name: Run main module tests
       run: python .ci/cue.py test
     - name: Upload tapfiles Artifact
+      if: ${{ always() }}
       uses: actions/upload-artifact@v4
       with:
         name: tapfiles ${{ matrix.name }}
         path: '**/O.*/*.tap'
         if-no-files-found: ignore
     - name: Collect and show test results
+      if: ${{ always() }}
       run: python .ci/cue.py test-results
 
   docker:
@@ -149,8 +174,6 @@ jobs:
       BASE: ${{ matrix.base }}
       CMP: ${{ matrix.cmp }}
       BCFG: ${{ matrix.configuration }}
-      WINE: ${{ matrix.wine }}
-      RTEMS: ${{ matrix.rtems }}
       EXTRA: ${{ matrix.extra }}
       TEST: ${{ matrix.test }}
     strategy:
@@ -158,59 +181,62 @@ jobs:
       matrix:
         # Job names also name artifacts, character limitations apply
         include:
-          - name: Linux centos 7
-            image: centos:7
+          - name: "CentOS-8"
+            image: centos:8
             cmp: gcc
-            configuration: default
             base: "7.0"
+            configuration: default
 
-          - name: Linux fedora latest
+          - name: "Rocky-9"
+            image: rockylinux:9
+            cmp: gcc
+            base: "7.0"
+            configuration: default
+
+          - name: "Fedora-33"
+            image: fedora:33
+            cmp: gcc
+            base: "7.0"
+            configuration: default
+
+          - name: "Fedora-latest"
             image: fedora:latest
             cmp: gcc
-            configuration: default
             base: "7.0"
+            configuration: default
 
     steps:
-    - name: "Build newer Git"
-      # actions/checkout@v2 wants git >=2.18
-      # centos:7 has 1.8
-      if: matrix.image=='centos:7'
+    - name: "Fix repo URLs on CentOS-8"
+      # centos:8 is frozen, repos are in the vault
+      if: matrix.image=='centos:8'
       run: |
-        yum -y install curl make gcc curl-devel expat-devel gettext-devel openssl-devel zlib-devel perl-ExtUtils-MakeMaker
-        curl https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.29.0.tar.gz | tar -xz
-        cd git-*
-        make -j2 prefix=/usr/local all
-        make prefix=/usr/local install
-        cd ..
-        rm -rf git-*
-        type -a git
-        git --version
+        sed -i -e "s|mirrorlist=|#mirrorlist=|" \
+        -e "s|#baseurl=http://mirror|baseurl=http://vault|" \
+        /etc/yum.repos.d/CentOS-Linux-{BaseOS,AppStream,Extras,Plus}.repo
+
     - name: "Redhat setup"
       run: |
-        dnfyum() {
-            dnf -y "$@" || yum -y "$@"
-            return $?
-        }
-        dnfyum install python3 gdb make perl gcc-c++ glibc-devel readline-devel ncurses-devel perl-devel libevent-devel net-tools
-        git --version || dnfyum install git
-        # rather than just bite the bullet and link python3 -> python,
-        # people would rather just break all existing scripts...
-        [ -e /usr/bin/python ] || ln -sf /usr/bin/python3 /usr/bin/python
-        python --version
-    - uses: actions/checkout@v2
+        dnf -y install python3 gdb make perl gcc-c++ glibc-devel readline-devel ncurses-devel perl-devel libevent-devel net-tools
+        git --version || dnf -y install git
+        python3 --version
+
+    - uses: actions/checkout@v4
       with:
         submodules: true
     - name: Prepare and compile dependencies
-      run: python .ci/cue.py prepare
+      run: python3 .ci/cue.py prepare
     - name: Build main module
-      run: python .ci/cue.py build
+      run: python3 .ci/cue.py build
     - name: Run main module tests
-      run: python .ci/cue.py test
-    - name: Upload tapfiles Artifact
+      run: python3 .ci/cue.py test
+
+    - name: "Upload tapfiles Artifact"
+      if: ${{ always() }}
       uses: actions/upload-artifact@v4
       with:
         name: tapfiles ${{ matrix.name }}
         path: '**/O.*/*.tap'
         if-no-files-found: ignore
-    - name: Collect and show test results
-      run: python .ci/cue.py test-results
+    - name: "Collect and show test results"
+      if: ${{ always() }}
+      run: python3 .ci/cue.py test-results

@@ -12,7 +12,6 @@ cache:
 
 install:
 # for the sequencer
-  - cinst re2c
   - cmd: git submodule update --init --recursive
 
 #---------------------------------#
@@ -21,7 +20,7 @@ install:
 
 init:
   # Set autocrlf to make batch files work
-  - git config --global core.autocrlf true
+  - cmd: git config --global core.autocrlf true
 
 clone_depth: 50
 
