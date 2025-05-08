@@ -67,7 +67,9 @@ platform:
 
 build_script:
   - cmd: python .ci/cue.py prepare
-  - cmd: python .ci/cue.py build
+  - cmd: python .ci/cue.py -T 10 build
+  - cmd: python .ci/cue.py -T 10 build
+  - cmd: python .ci/cue.py -T 10 build
 
 test_script:
   - cmd: python .ci/cue.py test
