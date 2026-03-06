@@ -66,8 +66,10 @@ struct TestChannelRequester : public epics::pvAccess::ChannelRequester
     epics::pvAccess::Channel::ConnectionState laststate;
     TestChannelRequester();
     virtual ~TestChannelRequester();
-    virtual void channelCreated(const epics::pvData::Status& status, epics::pvAccess::Channel::shared_pointer const & channel);
-    virtual void channelStateChange(epics::pvAccess::Channel::shared_pointer const & channel, epics::pvAccess::Channel::ConnectionState connectionState);
+    virtual void channelCreated(const epics::pvData::Status& status,
+            epics::pvAccess::Channel::shared_pointer const & channel) OVERRIDE FINAL;
+    virtual void channelStateChange(epics::pvAccess::Channel::shared_pointer const & channel,
+            epics::pvAccess::Channel::ConnectionState connectionState) OVERRIDE FINAL;
 
     bool waitForConnect();
 };
@@ -86,7 +88,7 @@ struct TestChannelFieldRequester : public epics::pvAccess::GetFieldRequester
 
     virtual void getDone(
            const epics::pvData::Status& status,
-           epics::pvData::FieldConstPtr const & field)
+           epics::pvData::FieldConstPtr const & field) OVERRIDE FINAL
     {
         this->status = status;
         fielddesc = field;
@@ -112,13 +114,15 @@ struct TestChannelGetRequester : public epics::pvAccess::ChannelGetRequester
     virtual void channelGetConnect(
             const epics::pvData::Status& status,
             epics::pvAccess::ChannelGet::shared_pointer const & channelGet,
-            epics::pvData::Structure::const_shared_pointer const & structure);
+            epics::pvData::Structure::const_shared_pointer const & structure)
+            OVERRIDE FINAL;
 
     virtual void getDone(
             const epics::pvData::Status& status,
             epics::pvAccess::ChannelGet::shared_pointer const & channelGet,
             epics::pvData::PVStructure::shared_pointer const & pvStructure,
-            epics::pvData::BitSet::shared_pointer const & bitSet);
+            epics::pvData::BitSet::shared_pointer const & bitSet)
+            OVERRIDE FINAL;
 };
 
 struct TestChannelPutRequester : public epics::pvAccess::ChannelPutRequester
@@ -139,17 +143,20 @@ struct TestChannelPutRequester : public epics::pvAccess::ChannelPutRequester
     virtual void channelPutConnect(
             const epics::pvData::Status& status,
             epics::pvAccess::ChannelPut::shared_pointer const & channelPut,
-            epics::pvData::Structure::const_shared_pointer const & structure);
+            epics::pvData::Structure::const_shared_pointer const & structure)
+            OVERRIDE FINAL;
 
     virtual void putDone(
             const epics::pvData::Status& status,
-            epics::pvAccess::ChannelPut::shared_pointer const & channelPut);
+            epics::pvAccess::ChannelPut::shared_pointer const & channelPut)
+            OVERRIDE FINAL;
 
     virtual void getDone(
             const epics::pvData::Status& status,
             epics::pvAccess::ChannelPut::shared_pointer const & channelPut,
             epics::pvData::PVStructure::shared_pointer const & pvStructure,
-            epics::pvData::BitSet::shared_pointer const & bitSet);
+            epics::pvData::BitSet::shared_pointer const & bitSet)
+            OVERRIDE FINAL;
 };
 
 struct TestChannelMonitorRequester : public epics::pvData::MonitorRequester
@@ -171,9 +178,10 @@ struct TestChannelMonitorRequester : public epics::pvData::MonitorRequester
 
     virtual void monitorConnect(epics::pvData::Status const & status,
                                 epics::pvData::MonitorPtr const & monitor,
-                                epics::pvData::StructureConstPtr const & structure);
-    virtual void monitorEvent(epics::pvData::MonitorPtr const & monitor);
-    virtual void unlisten(epics::pvData::MonitorPtr const & monitor);
+                                epics::pvData::StructureConstPtr const & structure)
+                                OVERRIDE FINAL;
+    virtual void monitorEvent(epics::pvData::MonitorPtr const & monitor) OVERRIDE FINAL;
+    virtual void unlisten(epics::pvData::MonitorPtr const & monitor) OVERRIDE FINAL;
 
     bool waitForConnect();
     bool waitForEvent();
@@ -195,14 +203,18 @@ struct TestPVChannel : public BaseChannel
                   const std::tr1::shared_ptr<epics::pvAccess::ChannelRequester>& req);
     virtual ~TestPVChannel();
 
-    virtual std::string getRemoteAddress() { return "localhost:1234"; }
-    virtual ConnectionState getConnectionState();
+    virtual std::string getRemoteAddress() OVERRIDE FINAL
+    { return "localhost:1234"; }
+    virtual ConnectionState getConnectionState() OVERRIDE FINAL;
 
-    virtual void getField(epics::pvAccess::GetFieldRequester::shared_pointer const & requester,std::string const & subField);
+    virtual void getField(
+            epics::pvAccess::GetFieldRequester::shared_pointer const & requester,
+            std::string const & subField) OVERRIDE FINAL;
 
     virtual epics::pvData::Monitor::shared_pointer createMonitor(
             epics::pvData::MonitorRequester::shared_pointer const & monitorRequester,
-            epics::pvData::PVStructure::shared_pointer const & pvRequest);
+            epics::pvData::PVStructure::shared_pointer const & pvRequest)
+            OVERRIDE FINAL;
 };
 
 struct TestPVMonitor : public epics::pvData::Monitor
