@@ -280,7 +280,7 @@ int main(int argc, char *argv[])
             lvl = pva::logLevelDebug;
         else if(arg.debug==3)
             lvl = pva::logLevelTrace;
-        else if(arg.debug>=4)
+        else // arg.debug>=4
             lvl = pva::logLevelAll;
         SET_LOG_LEVEL(lvl);
 
